@@ -1,6 +1,9 @@
 package org.example.pages;
+import org.example.classes.Customer;
+import org.example.classes.Order;
 import org.example.classes.Product;
 import org.example.database.ConnectDB;
+import org.example.threads.OrderThread;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -19,6 +22,8 @@ public class AdminPage {
     private Connection connection;
 
     private static ArrayList<Product> productList = new ArrayList<Product>();
+    private static ArrayList<Order> orderList = new ArrayList<Order>();
+    private static ArrayList<Customer> customerList = new ArrayList<Customer>();
 
     private JFrame frame = new JFrame("Products Orders App");
 
@@ -30,6 +35,8 @@ public class AdminPage {
     private JTextField deleteProductNameField = new JTextField();
     private JTextField updateProductNameField = new JTextField();
     private JTextField updateStockField = new JTextField();
+
+    private static JTable orderTable;
 
 
     public void createAndShowGUI() {
@@ -45,6 +52,8 @@ public class AdminPage {
         connection = ConnectDB.getConnection();
 
         productList = MainPage.getProductList();
+        orderList = MainPage.getOrderList();
+        customerList = MainPage.getCustomerList();
 
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLayout(null);
@@ -111,6 +120,7 @@ public class AdminPage {
         productAdditionPanel.add(productPriceField);
 
         JButton addProductButton = new JButton("Ürünü Ekle");
+        addProductButton.setEnabled(false);
         addProductButton.setBounds(50, 458, 200, 40);
         addProductButton.setBackground(Color.decode("#D9D9D9"));
         addProductButton.setForeground(Color.BLACK);
@@ -200,6 +210,7 @@ public class AdminPage {
         productDeletionPanel.add(deleteProductNameField);
 
         JButton deleteProductButton = new JButton("Ürünü Sil");
+        deleteProductButton.setEnabled(false);
         deleteProductButton.setBounds(60, 170, 200, 40);
         deleteProductButton.setBackground(Color.decode("#D9D9D9"));
         deleteProductButton.setForeground(Color.BLACK);
@@ -251,6 +262,7 @@ public class AdminPage {
         productUpdatePanel.add(updateStockField);
 
         JButton updateProductButton = new JButton("Ürünü Güncelle");
+        updateProductButton.setEnabled(false);
         updateProductButton.setBounds(60, 270, 200, 40);
         updateProductButton.setBackground(Color.decode("#D9D9D9"));
         updateProductButton.setForeground(Color.BLACK);
@@ -279,7 +291,7 @@ public class AdminPage {
         // System Hold Button
         JButton holdSystemButton = new JButton("Sistemi Beklemeye Al");
         holdSystemButton.setBounds(788, 39, 344, 40);
-        holdSystemButton.setBackground(Color.decode("#00FF11"));
+        holdSystemButton.setBackground(Color.GREEN);
         holdSystemButton.setForeground(Color.WHITE);
         holdSystemButton.setFont(new Font("Inter", Font.PLAIN, 24));
         holdSystemButton.setBorder(BorderFactory.createEmptyBorder());
@@ -289,28 +301,85 @@ public class AdminPage {
         holdSystemButton.setBorder(BorderFactory.createEmptyBorder());
         panel.add(holdSystemButton);
 
+        holdSystemButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // Eğer butonun rengi yeşilse
+                if (holdSystemButton.getBackground() == Color.GREEN) {
+                    // Beklemeye al işlemi
+                    MainPage.getOrderButton().setEnabled(false);
+                    OrderThread.stopThread();
+                    addProductButton.setEnabled(true);
+                    deleteProductButton.setEnabled(true);
+                    updateProductButton.setEnabled(true);
+                    holdSystemButton.setBackground(Color.RED);
+                    holdSystemButton.setText("Sistemi Devam Ettir");
+                }
+                else if (holdSystemButton.getBackground() == Color.RED) {
+                    MainPage.getOrderButton().setEnabled(true);
+                    OrderThread.resetStopFlag();
+                    addProductButton.setEnabled(false);
+                    deleteProductButton.setEnabled(false);
+                    updateProductButton.setEnabled(false);
+                    holdSystemButton.setBackground(Color.GREEN);
+                    holdSystemButton.setText("Sistemi Beklemeye Al");
+                }
+            }
+        });
+
         // Approval Pending Table Rectangle
         JPanel approvalPendingPanel = new JPanel(null);
         approvalPendingPanel.setBounds(770, 171, 400, 260);
         approvalPendingPanel.setBackground(Color.decode("#767676"));
         panel.add(approvalPendingPanel);
 
-        // Approval Customer Name Label
-        JLabel approvalCustomerNameLabel = new JLabel("Onay Verilecek Müşteri Adı :");
-        approvalCustomerNameLabel.setBounds(805, 468, 402, 30);
-        approvalCustomerNameLabel.setFont(new Font("Inter", Font.PLAIN, 24));
-        approvalCustomerNameLabel.setForeground(Color.WHITE);
-        panel.add(approvalCustomerNameLabel);
+        String[] orderColumnNames = {"Müşteri Türü", "Müşteri Adı", "Harcama"};
+        Object[][] orderData = new Object[orderList.size()][3];
 
-        // Approval Customer Name Field
-        JTextField approvalCustomerNameField = new JTextField();
-        approvalCustomerNameField.setBounds(795, 527, 350, 40);
-        approvalCustomerNameField.setBackground(Color.decode("#D9D9D9"));
-        panel.add(approvalCustomerNameField);
+        for (int i = 0; i < orderList.size(); i++) {
+            Order order = orderList.get(i);
+            Customer customer = null;
+
+            for(int j = 0 ; j < customerList.size(); j++){
+                if(order.getCustomerID() == customerList.get(j).getCustomerID()){
+                    customer = customerList.get(j);
+                }
+            }
+
+            orderData[i][0] = customer.getCustomerType();
+            orderData[i][1] = customer.getCustomerName();
+            orderData[i][2] = order.getTotalPrice();
+
+        }
+
+        DefaultTableModel orderTableModel = new DefaultTableModel(orderData, orderColumnNames) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+
+        orderTable = new JTable(orderTableModel);
+        orderTable.setFont(new Font("Inter", Font.PLAIN, 16));
+        orderTable.setRowHeight(30);
+        orderTable.getTableHeader().setFont(new Font("Inter", Font.BOLD, 16));
+        orderTable.getTableHeader().setBackground(new Color(0x555555));
+        orderTable.getTableHeader().setForeground(Color.WHITE);
+        orderTable.setBackground(new Color(0xE0E0E0));
+        orderTable.setForeground(Color.BLACK);
+
+        JScrollPane scrollPaneOrder = new JScrollPane(orderTable);
+        scrollPaneOrder.setBounds(0, 0, approvalPendingPanel.getWidth(), approvalPendingPanel.getHeight());
+        scrollPaneOrder.setBackground(new Color(0x767676));
+        scrollPaneOrder.setBorder(BorderFactory.createEmptyBorder());
+
+        // Add the scroll pane to the rectangle
+        approvalPendingPanel.setLayout(null);
+        approvalPendingPanel.add(scrollPaneOrder);
 
         // Approval Button
         JButton approveButton = new JButton("Onay Ver");
-        approveButton.setBounds(855, 591, 230, 40);
+        approveButton.setBounds(855, 491, 230, 40);
         approveButton.setBackground(Color.decode("#D9D9D9"));
         approveButton.setForeground(Color.BLACK);
         approveButton.setFont(new Font("Inter", Font.PLAIN, 28));
@@ -529,12 +598,50 @@ public class AdminPage {
         productTable.repaint();  // Repaint to ensure UI refresh
     }
 
+    public static void updateOrdersTable() {
+        String[] orderColumnNames = {"Müşteri Türü", "Müşteri Adı", "Harcama"};
+        Object[][] orderData = new Object[orderList.size()][3];
+
+        for (int i = 0; i < orderList.size(); i++) {
+            Order order = orderList.get(i);
+            Customer customer = null;
+
+            for(int j = 0 ; j < customerList.size(); j++){
+                if(order.getCustomerID() == customerList.get(j).getCustomerID()){
+                    customer = customerList.get(j);
+                }
+            }
+
+            orderData[i][0] = customer.getCustomerType();
+            orderData[i][1] = customer.getCustomerName();
+            orderData[i][2] = order.getTotalPrice();
+
+        }
+
+        // Recreate the table model with updated data
+        DefaultTableModel orderTableModel = new DefaultTableModel(orderData, orderColumnNames) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+
+        // Update the table with the new model
+        orderTable.setModel(orderTableModel);
+        orderTable.revalidate();  // Revalidate the table to reflect changes
+        orderTable.repaint();  // Repaint to ensure UI refresh
+    }
+
     public static ArrayList<Product> getProductList() {
         return productList;
     }
 
     public static void setProductList(ArrayList<Product> productList) {
         AdminPage.productList = productList;
+    }
+
+    public static JTable getOrderTable() {
+        return orderTable;
     }
 
 }

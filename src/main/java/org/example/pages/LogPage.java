@@ -21,7 +21,7 @@ public class LogPage {
 
     private JFrame frame = new JFrame("Products Orders App");
 
-    private JTable logTable;
+    private static JTable logTable;
 
     public void createAndShowGUI() {
 
@@ -102,16 +102,11 @@ public class LogPage {
         logTable.setBackground(new Color(0xE0E0E0));
         logTable.setForeground(Color.BLACK);
 
-        // Yatay kaydırma çubuğu için AUTO_RESIZE_OFF modunu ayarla
+        // Yatay kaydırma çubuğu için AUTO_RESIZE_OFF modunu ayarla sadece ilk defa
         logTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
 
-        // Sütun genişliklerini ayarla
-        logTable.getColumnModel().getColumn(0).setPreferredWidth(150); // Log ID
-        logTable.getColumnModel().getColumn(1).setPreferredWidth(150); // Müşteri ID
-        logTable.getColumnModel().getColumn(2).setPreferredWidth(150); // Sipariş ID
-        logTable.getColumnModel().getColumn(3).setPreferredWidth(200); // Log Tarihi
-        logTable.getColumnModel().getColumn(4).setPreferredWidth(150); // Log Tipi
-        logTable.getColumnModel().getColumn(5).setPreferredWidth(800); // Log Detayı (daha geniş)
+        // Sütun genişliklerini ayarla (ilk defa tabloyu oluşturduktan sonra)
+        setTableColumnWidths();
 
         JScrollPane scrollPaneLog = new JScrollPane(logTable, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         scrollPaneLog.setBounds(0, 0, logRectangle.getWidth(), logRectangle.getHeight());
@@ -119,9 +114,55 @@ public class LogPage {
         scrollPaneLog.setBorder(BorderFactory.createEmptyBorder());
         logRectangle.add(scrollPaneLog);
 
-
         // frame boyutları ve görünürlük
         frame.setSize(1200, 840);
         frame.setVisible(true);
     }
+
+    // Tabloyu güncellerken sütun genişliklerini yeniden ayarla
+    public static void updateLogsTable() {
+        String[] logColumnNames = {"Log ID", "Müşteri ID", "Sipariş ID", "Log Tarihi", "Log Tipi", "Log Detayı"};
+        Object[][] logData = new Object[logList.size()][6];
+
+        // Veriler dolduruluyor
+        for (int i = 0; i < logList.size(); i++) {
+            Log log = logList.get(i);
+            logData[i][0] = log.getLogID();
+            logData[i][1] = log.getCustomerID();
+            logData[i][2] = log.getOrderID();
+            logData[i][3] = log.getLogDate();
+            logData[i][4] = log.getLogType();
+            logData[i][5] = log.getLogDetails();
+        }
+
+        DefaultTableModel logTableModel = new DefaultTableModel(logData, logColumnNames) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+
+        logTable.setModel(logTableModel);
+
+        // Sütun genişliklerini yeniden ayarla
+        setTableColumnWidths();
+
+        logTable.revalidate();  // Revalidate the table to reflect changes
+        logTable.repaint();  // Repaint to ensure UI refresh
+    }
+
+    // Tablo sütun genişliklerini ayarlamak için yardımcı fonksiyon
+    private static void setTableColumnWidths() {
+        logTable.getColumnModel().getColumn(0).setPreferredWidth(150); // Log ID
+        logTable.getColumnModel().getColumn(1).setPreferredWidth(150); // Müşteri ID
+        logTable.getColumnModel().getColumn(2).setPreferredWidth(150); // Sipariş ID
+        logTable.getColumnModel().getColumn(3).setPreferredWidth(200); // Log Tarihi
+        logTable.getColumnModel().getColumn(4).setPreferredWidth(150); // Log Tipi
+        logTable.getColumnModel().getColumn(5).setPreferredWidth(800); // Log Detayı (daha geniş)
+    }
+
+    public static JTable getLogTable() {
+        return logTable;
+    }
+
 }

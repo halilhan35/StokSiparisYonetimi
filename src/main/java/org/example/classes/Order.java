@@ -9,10 +9,11 @@ public class Order {
     private Double totalPrice;
     private String orderDate;
     private String orderStatus;
+    private boolean confirm;
 
     public Order(){}
 
-    public Order(int orderID, int customerID, int productID, int quantity, Double totalPrice, String orderDate, String orderStatus){
+    public Order(int orderID, int customerID, int productID, int quantity, Double totalPrice, String orderDate, String orderStatus, boolean confirm){
         this.orderID = orderID;
         this.customerID = customerID;
         this.productID = productID;
@@ -20,6 +21,7 @@ public class Order {
         this.totalPrice = totalPrice;
         this.orderDate = orderDate;
         this.orderStatus = orderStatus;
+        this.confirm = confirm;
     }
 
     public int getOrderID() {
@@ -50,6 +52,10 @@ public class Order {
         return this.orderStatus;
     }
 
+    public boolean getConfirm() {
+        return confirm;
+    }
+
     public void setOrderID(int orderID) {
         this.orderID = orderID;
     }
@@ -76,6 +82,10 @@ public class Order {
 
     public void setOrderStatus(String orderStatus) {
         this.orderStatus = orderStatus;
+    }
+
+    public void setConfirm(boolean confirm) {
+        this.confirm = confirm;
     }
 
 }

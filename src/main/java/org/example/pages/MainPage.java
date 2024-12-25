@@ -1,9 +1,11 @@
 package org.example.pages;
 
 import org.example.classes.Customer;
+import org.example.classes.Order;
 import org.example.classes.Product;
 import org.example.classes.Log;
 import org.example.database.ConnectDB;
+import org.example.threads.OrderThread;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -17,14 +19,21 @@ import java.util.ArrayList;
 
 public class MainPage {
 
-    ArrayList<Customer> customerList = new ArrayList<Customer>();
+    private static ArrayList<Customer> customerList = new ArrayList<Customer>();
     private static ArrayList<Product> productList = new ArrayList<Product>();
     private static ArrayList<Log> logList = new ArrayList<Log>();
+    private static ArrayList<Order> orderList = new ArrayList<Order>();
+    private ArrayList<Order> preCustomers = new ArrayList<Order>();
+    private ArrayList<Order> staCustomers = new ArrayList<Order>();
+
+    private static JButton orderButton = new JButton("Sipariş Ver");
 
     private Connection connection;
 
     private JFrame frame = new JFrame("Products Orders App");
     private static JTable productTable;
+    private static JTable customerTable;
+    private static JTable orderTable;
 
     public void createAndShowGUI() {
 
@@ -41,6 +50,27 @@ public class MainPage {
         selectAllCustomers();
         selectAllProducts();
         selectAllLogs();
+        selectOrders();
+
+        for (Order order1 : orderList) {
+            for (Customer customer : customerList) {
+                if(order1.getCustomerID() == customer.getCustomerID()) {
+                    if (customer.getCustomerType().equals("Premium")) {
+                        preCustomers.add(order1);
+                    } else if (customer.getCustomerType().equals("Standard")) {
+                        staCustomers.add(order1);
+                    }
+                }
+            }
+        }
+
+        orderList.clear();
+
+        orderList.addAll(preCustomers);
+        orderList.addAll(staCustomers);
+
+        preCustomers.clear();
+        staCustomers.clear();
 
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLayout(null);
@@ -110,7 +140,7 @@ public class MainPage {
             }
         };
 
-        JTable customerTable = new JTable(customerTableModel);
+        customerTable = new JTable(customerTableModel);
         customerTable.setFont(new Font("Inter", Font.PLAIN, 16));
         customerTable.setRowHeight(30);
         customerTable.getTableHeader().setFont(new Font("Inter", Font.BOLD, 16));
@@ -175,7 +205,7 @@ public class MainPage {
         panel.add(productNumberField);
 
         // Order Button
-        JButton orderButton = new JButton("Sipariş Ver");
+        orderButton.setEnabled(true);
         orderButton.setBounds(53, 380, 240, 40);
         orderButton.setBackground(new Color(0xE0E0E0));
         orderButton.setForeground(Color.BLACK);
@@ -184,6 +214,27 @@ public class MainPage {
         orderButton.setContentAreaFilled(true);
         orderButton.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
         panel.add(orderButton);
+
+        orderButton.addActionListener(e -> {
+            String customerName = customerNameField.getText().trim();
+            String productName = productNameField.getText().trim();
+            int quantity;
+
+            try {
+                quantity = Integer.parseInt(productNumberField.getText().trim());
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(frame, "Lütfen geçerli bir miktar girin!", "Hata", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            if (customerName.isEmpty() || productName.isEmpty()) {
+                JOptionPane.showMessageDialog(frame, "Lütfen tüm alanları doldurun!", "Hata", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            OrderThread orderThread = new OrderThread(customerName, productName, quantity, connection);
+            orderThread.start();
+        });
 
         // Product Table Panel
         JPanel productTablePanel = new JPanel();
@@ -231,6 +282,50 @@ public class MainPage {
         orderQueuePanel.setBounds(738, 105, 395, 360);
         orderQueuePanel.setBackground(new Color(0x767676));
         panel.add(orderQueuePanel);
+
+        String[] orderColumnNames = {"Müşteri Türü", "Müşteri Adı", "Harcama"};
+        Object[][] orderData = new Object[orderList.size()][3];
+
+        for (int i = 0; i < orderList.size(); i++) {
+            Order order = orderList.get(i);
+            Customer customer = null;
+
+            for(int j = 0 ; j < customerList.size(); j++){
+                if(order.getCustomerID() == customerList.get(j).getCustomerID()){
+                    customer = customerList.get(j);
+                }
+            }
+
+            orderData[i][0] = customer.getCustomerType();
+            orderData[i][1] = customer.getCustomerName();
+            orderData[i][2] = order.getTotalPrice();
+
+        }
+
+        DefaultTableModel orderTableModel = new DefaultTableModel(orderData, orderColumnNames) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+
+        orderTable = new JTable(orderTableModel);
+        orderTable.setFont(new Font("Inter", Font.PLAIN, 16));
+        orderTable.setRowHeight(30);
+        orderTable.getTableHeader().setFont(new Font("Inter", Font.BOLD, 16));
+        orderTable.getTableHeader().setBackground(new Color(0x555555));
+        orderTable.getTableHeader().setForeground(Color.WHITE);
+        orderTable.setBackground(new Color(0xE0E0E0));
+        orderTable.setForeground(Color.BLACK);
+
+        JScrollPane scrollPaneOrder = new JScrollPane(orderTable);
+        scrollPaneOrder.setBounds(0, 0, orderQueuePanel.getWidth(), orderQueuePanel.getHeight());
+        scrollPaneOrder.setBackground(new Color(0x767676));
+        scrollPaneOrder.setBorder(BorderFactory.createEmptyBorder());
+
+        // Add the scroll pane to the rectangle
+        orderQueuePanel.setLayout(null);
+        orderQueuePanel.add(scrollPaneOrder);
 
         // Admin Icon
         JLabel adminIcon = new JLabel();
@@ -341,6 +436,31 @@ public class MainPage {
         }
     }
 
+    public void selectOrders(){
+        try {
+            String query = "SELECT * FROM orders WHERE confirm = false";
+            PreparedStatement stmt = connection.prepareStatement(query);
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                int orderID = rs.getInt("orderid");
+                int customerID = rs.getInt("customerid");
+                int productID = rs.getInt("productid");
+                int quantity = rs.getInt("quantity");
+                double totalPrice = rs.getDouble("totalprice");
+                String orderDate = rs.getString("orderdate");
+                String orderStatus = rs.getString("orderstatus");
+                boolean confirm = rs.getBoolean("confirm");
+
+                Order order = new Order(orderID,customerID, productID, quantity, totalPrice, orderDate, orderStatus, confirm);
+                orderList.add(order);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
     public static void updateProductTable() {
         String[] productColumnNames = {"Ürün Adı", "Stok", "Fiyat"};
         Object[][] productData = new Object[productList.size()][3];
@@ -366,12 +486,90 @@ public class MainPage {
         productTable.repaint();  // Repaint to ensure UI refresh
     }
 
+    public static void updateOrdersTable() {
+        String[] orderColumnNames = {"Müşteri Türü", "Müşteri Adı", "Harcama"};
+        Object[][] orderData = new Object[orderList.size()][3];
+
+        for (int i = 0; i < orderList.size(); i++) {
+            Order order = orderList.get(i);
+            Customer customer = null;
+
+            for(int j = 0 ; j < customerList.size(); j++){
+                if(order.getCustomerID() == customerList.get(j).getCustomerID()){
+                    customer = customerList.get(j);
+                }
+            }
+
+            orderData[i][0] = customer.getCustomerType();
+            orderData[i][1] = customer.getCustomerName();
+            orderData[i][2] = order.getTotalPrice();
+
+        }
+
+        // Recreate the table model with updated data
+        DefaultTableModel orderTableModel = new DefaultTableModel(orderData, orderColumnNames) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+
+        // Update the table with the new model
+        orderTable.setModel(orderTableModel);
+        orderTable.revalidate();  // Revalidate the table to reflect changes
+        orderTable.repaint();  // Repaint to ensure UI refresh
+    }
+
+    public static void updateCustomersTable() {
+        // Customer List Table
+        String[] customerColumnNames = {"Adı", "Türü", "Bütçe", "Toplam Harcama"};
+        Object[][] customerData = new Object[customerList.size()][4];
+
+        // Fill the data array with customerList content
+        for (int i = 0; i < customerList.size(); i++) {
+            Customer customer = customerList.get(i);
+            customerData[i][0] = customer.getCustomerName();
+            customerData[i][1] = customer.getCustomerType();
+            customerData[i][2] = customer.getBudget();
+            customerData[i][3] = customer.getTotalSpent();
+        }
+
+        // Recreate the table model with updated data
+        DefaultTableModel customerTableModel = new DefaultTableModel(customerData, customerColumnNames) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false; // Disable editing for all cells
+            }
+        };
+
+        // Update the table with the new model
+        customerTable.setModel(customerTableModel);
+        customerTable.revalidate();  // Revalidate the table to reflect changes
+        customerTable.repaint();  // Repaint to ensure UI refresh
+    }
+
     public static ArrayList<Product> getProductList() {
         return productList;
     }
 
+    public static ArrayList<Customer> getCustomerList() {
+        return customerList;
+    }
+
+    public static ArrayList<Order> getOrderList() {
+        return orderList;
+    }
+
     public static void setProductList(ArrayList<Product> productList) {
         MainPage.productList = productList;
+    }
+
+    public static void setCustomerList(ArrayList<Customer> customerList) {
+        MainPage.customerList = customerList;
+    }
+
+    public static void setOrderList(ArrayList<Order> orderList) {
+        MainPage.orderList = orderList;
     }
 
     public static ArrayList<Log> getLogList() {
@@ -380,6 +578,10 @@ public class MainPage {
 
     public static void setLogList(ArrayList<Log> logList) {
         MainPage.logList = logList;
+    }
+
+    public static JButton getOrderButton() {
+        return orderButton;
     }
 
 }
