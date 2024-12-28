@@ -4,6 +4,7 @@ import org.example.classes.Customer;
 import org.example.classes.Order;
 import org.example.classes.Product;
 import org.example.database.ConnectDB;
+import org.example.progressbar.StockProgressBarRenderer;
 import org.example.threads.ControllerThread;
 import org.example.threads.OrderThread;
 
@@ -171,8 +172,8 @@ public class AdminPage {
         productListPanel.setBackground(Color.decode("#767676"));
         panel.add(productListPanel);
 
-        String[] productColumnNames = {"Ürün ID","Ürün Adı", "Stok", "Fiyat"};
-        Object[][] productData = new Object[productList.size()][4];
+        String[] productColumnNames = {"Ürün ID", "Ürün Adı", "Stok", "Fiyat", "Stok Durumu"};
+        Object[][] productData = new Object[productList.size()][5];
 
         for (int i = 0; i < productList.size(); i++) {
             Product product = productList.get(i);
@@ -180,6 +181,10 @@ public class AdminPage {
             productData[i][1] = product.getProductName();
             productData[i][2] = product.getStock();
             productData[i][3] = product.getPrice();
+
+            // Stok yüzdesini hesapla (maksimum stok 500 olarak varsayılmış)
+            int stockPercentage = (int) ((product.getStock() / 500.0) * 100);
+            productData[i][4] = stockPercentage;
         }
 
         DefaultTableModel productTableModel = new DefaultTableModel(productData, productColumnNames) {
@@ -198,12 +203,13 @@ public class AdminPage {
         productTable.setBackground(new Color(0xE0E0E0));
         productTable.setForeground(Color.BLACK);
 
+        productTable.getColumnModel().getColumn(4).setCellRenderer(new StockProgressBarRenderer());
+
         JScrollPane scrollPaneProduct = new JScrollPane(productTable);
         scrollPaneProduct.setBounds(0, 0, productListPanel.getWidth(), productListPanel.getHeight());
         scrollPaneProduct.setBackground(new Color(0x767676));
         scrollPaneProduct.setBorder(BorderFactory.createEmptyBorder());
 
-        // Add the scroll pane to the rectangle
         productListPanel.setLayout(null);
         productListPanel.add(scrollPaneProduct);
 
@@ -675,8 +681,8 @@ public class AdminPage {
     }
 
     private void updateProductTable() {
-        String[] productColumnNames = {"Ürün ID", "Ürün Adı", "Stok", "Fiyat"};
-        Object[][] productData = new Object[productList.size()][4];
+        String[] productColumnNames = {"Ürün ID", "Ürün Adı", "Stok", "Fiyat", "Stok Durumu"};
+        Object[][] productData = new Object[productList.size()][5];
 
         for (int i = 0; i < productList.size(); i++) {
             Product product = productList.get(i);
@@ -684,20 +690,28 @@ public class AdminPage {
             productData[i][1] = product.getProductName();
             productData[i][2] = product.getStock();
             productData[i][3] = product.getPrice();
+
+            // Stok yüzdesi hesaplama (maksimum stok 500 varsayıldı)
+            int stockPercentage = Math.min((int) ((product.getStock() / 500.0) * 100), 100);
+            productData[i][4] = stockPercentage;
         }
 
-        // Recreate the table model with updated data
         DefaultTableModel productTableModel = new DefaultTableModel(productData, productColumnNames) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false; // Make table non-editable
+                return false;
             }
         };
 
-        // Update the table with the new model
+        // Yeni modeli tabloya set et
         productTable.setModel(productTableModel);
-        productTable.revalidate();  // Revalidate the table to reflect changes
-        productTable.repaint();  // Repaint to ensure UI refresh
+
+        // Stok Durumu sütunu için renderer ekle
+        productTable.getColumnModel().getColumn(4).setCellRenderer(new StockProgressBarRenderer());
+
+        // UI güncellemeleri
+        productTable.revalidate(); // Tabloyu yeniden doğrula
+        productTable.repaint(); // UI'yi yeniden çiz
     }
 
     public static void updateOrdersTable() {
