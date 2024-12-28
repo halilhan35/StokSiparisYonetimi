@@ -1,9 +1,9 @@
 package org.example.pages;
 
+import org.example.Application;
 import org.example.classes.Customer;
 import org.example.classes.Order;
 import org.example.classes.Product;
-import org.example.classes.Log;
 import org.example.database.ConnectDB;
 import org.example.threads.OrderThread;
 
@@ -11,6 +11,8 @@ import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -19,10 +21,6 @@ import java.util.ArrayList;
 
 public class MainPage {
 
-    private static ArrayList<Customer> customerList = new ArrayList<Customer>();
-    private static ArrayList<Product> productList = new ArrayList<Product>();
-    private static ArrayList<Log> logList = new ArrayList<Log>();
-    private static ArrayList<Order> orderList = new ArrayList<Order>();
     private ArrayList<Order> preCustomers = new ArrayList<Order>();
     private ArrayList<Order> staCustomers = new ArrayList<Order>();
 
@@ -30,9 +28,8 @@ public class MainPage {
 
     private Connection connection;
 
-    private JFrame frame = new JFrame("Products Orders App");
+    private static JFrame frame = new JFrame("Products Orders App");
     private static JTable productTable;
-    private static JTable customerTable;
     private static JTable orderTable;
 
     public void createAndShowGUI() {
@@ -47,13 +44,8 @@ public class MainPage {
 
         connection = ConnectDB.getConnection();
 
-        selectAllCustomers();
-        selectAllProducts();
-        selectAllLogs();
-        selectOrders();
-
-        for (Order order1 : orderList) {
-            for (Customer customer : customerList) {
+        for (Order order1 : Application.getOrderList()) {
+            for (Customer customer : Application.getCustomerList()) {
                 if(order1.getCustomerID() == customer.getCustomerID()) {
                     if (customer.getCustomerType().equals("Premium")) {
                         preCustomers.add(order1);
@@ -64,10 +56,10 @@ public class MainPage {
             }
         }
 
-        orderList.clear();
+        Application.getOrderList().clear();
 
-        orderList.addAll(preCustomers);
-        orderList.addAll(staCustomers);
+        Application.getOrderList().addAll(preCustomers);
+        Application.getOrderList().addAll(staCustomers);
 
         preCustomers.clear();
         staCustomers.clear();
@@ -91,13 +83,6 @@ public class MainPage {
         panel.setLayout(null);
         frame.setContentPane(panel);
 
-        // Customer List Label
-        JLabel customerListLabel = new JLabel("Müşteri Listesi");
-        customerListLabel.setBounds(53, 468, 240, 40);
-        customerListLabel.setFont(new Font("Inter", Font.PLAIN, 32));
-        customerListLabel.setForeground(Color.WHITE);
-        panel.add(customerListLabel);
-
         // Product Table Label
         JLabel productTableLabel = new JLabel("Ürün Tablosu");
         productTableLabel.setBounds(399, 30, 240, 40);
@@ -114,83 +99,46 @@ public class MainPage {
         orderQueueLabel.setHorizontalAlignment(SwingConstants.CENTER);
         panel.add(orderQueueLabel);
 
-        // Customer List Rectangle
-        JPanel customerListRectangle = new JPanel();
-        customerListRectangle.setBounds(50, 530, 1100, 240);
-        customerListRectangle.setBackground(new Color(0x767676));
-        panel.add(customerListRectangle);
+        JButton returnButton = new JButton("Geri");
+        returnButton.setBounds(30, 40, 80, 40);
+        returnButton.setBackground(Color.decode("#D9D9D9"));
+        returnButton.setForeground(Color.BLACK);
+        returnButton.setFont(new Font("Inter", Font.PLAIN, 20));
+        panel.add(returnButton);
 
-        // Customer List Table
-        String[] customerColumnNames = {"Adı", "Türü", "Bütçe", "Toplam Harcama"};
-        Object[][] customerData = new Object[customerList.size()][4];
-
-        // Fill the data array with customerList content
-        for (int i = 0; i < customerList.size(); i++) {
-            Customer customer = customerList.get(i);
-            customerData[i][0] = customer.getCustomerName();
-            customerData[i][1] = customer.getCustomerType();
-            customerData[i][2] = customer.getBudget();
-            customerData[i][3] = customer.getTotalSpent();
-        }
-
-        DefaultTableModel customerTableModel = new DefaultTableModel(customerData, customerColumnNames) {
+        returnButton.addActionListener(new ActionListener() {
             @Override
-            public boolean isCellEditable(int row, int column) {
-                return false; // Disable editing for all cells
+            public void actionPerformed(ActionEvent e) {
+
+                frame.dispose();
+                Application.getLoginPage().getFrame().setVisible(true);
+
             }
-        };
+        });
 
-        customerTable = new JTable(customerTableModel);
-        customerTable.setFont(new Font("Inter", Font.PLAIN, 16));
-        customerTable.setRowHeight(30);
-        customerTable.getTableHeader().setFont(new Font("Inter", Font.BOLD, 16));
-        customerTable.getTableHeader().setBackground(new Color(0x555555));
-        customerTable.getTableHeader().setForeground(Color.WHITE);
-        customerTable.setBackground(new Color(0xE0E0E0));
-        customerTable.setForeground(Color.BLACK);
-
-       // Add the table to a scroll pane
-        JScrollPane scrollPaneCustomer = new JScrollPane(customerTable);
-        scrollPaneCustomer.setBounds(0, 0, customerListRectangle.getWidth(), customerListRectangle.getHeight());
-        scrollPaneCustomer.setBackground(new Color(0x767676));
-        scrollPaneCustomer.setBorder(BorderFactory.createEmptyBorder());
-
-       // Add the scroll pane to the rectangle
-        customerListRectangle.setLayout(null);
-        customerListRectangle.add(scrollPaneCustomer);
-
-        // Customer Name Label
-        JLabel customerNameLabel = new JLabel("Müşteri Adı:");
-        customerNameLabel.setBounds(50, 30, 240, 40);
-        customerNameLabel.setFont(new Font("Inter", Font.PLAIN, 32));
-        customerNameLabel.setForeground(Color.WHITE);
-        panel.add(customerNameLabel);
+        JLabel productLabel = new JLabel("SİPARİŞ");
+        productLabel.setBounds(120, 120, 150, 40);
+        productLabel.setFont(new Font("Inter", Font.PLAIN, 32));
+        productLabel.setForeground(Color.WHITE);
+        panel.add(productLabel);
 
         // Product Name Label
         JLabel productNameLabel = new JLabel("Ürün Adı:");
-        productNameLabel.setBounds(50, 140, 240, 40);
-        productNameLabel.setFont(new Font("Inter", Font.PLAIN, 32));
+        productNameLabel.setBounds(50, 180, 240, 40);
+        productNameLabel.setFont(new Font("Inter", Font.PLAIN, 24));
         productNameLabel.setForeground(Color.WHITE);
         panel.add(productNameLabel);
 
         // Product Number Label
         JLabel productNumberLabel = new JLabel("Ürün Miktarı:");
-        productNumberLabel.setBounds(50, 250, 240, 40);
-        productNumberLabel.setFont(new Font("Inter", Font.PLAIN, 32));
+        productNumberLabel.setBounds(50, 290, 240, 40);
+        productNumberLabel.setFont(new Font("Inter", Font.PLAIN, 24));
         productNumberLabel.setForeground(Color.WHITE);
         panel.add(productNumberLabel);
 
-        // Customer Name TextField
-        JTextField customerNameField = new JTextField();
-        customerNameField.setBounds(50, 80, 250, 50);
-        customerNameField.setBackground(new Color(0xE0E0E0));
-        customerNameField.setFont(new Font("Inter", Font.PLAIN, 20));
-        customerNameField.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
-        panel.add(customerNameField);
-
         // Product Name TextField
         JTextField productNameField = new JTextField();
-        productNameField.setBounds(50, 190, 250, 50);
+        productNameField.setBounds(50, 230, 250, 40);
         productNameField.setBackground(new Color(0xE0E0E0));
         productNameField.setFont(new Font("Inter", Font.PLAIN, 20));
         productNameField.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
@@ -198,7 +146,7 @@ public class MainPage {
 
         // Product Number TextField
         JTextField productNumberField = new JTextField();
-        productNumberField.setBounds(50, 300, 250, 50);
+        productNumberField.setBounds(50, 340, 250, 40);
         productNumberField.setBackground(new Color(0xE0E0E0));
         productNumberField.setFont(new Font("Inter", Font.PLAIN, 20));
         productNumberField.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
@@ -206,7 +154,7 @@ public class MainPage {
 
         // Order Button
         orderButton.setEnabled(true);
-        orderButton.setBounds(53, 380, 240, 40);
+        orderButton.setBounds(53, 420, 240, 40);
         orderButton.setBackground(new Color(0xE0E0E0));
         orderButton.setForeground(Color.BLACK);
         orderButton.setFont(new Font("Inter", Font.PLAIN, 24));
@@ -216,24 +164,34 @@ public class MainPage {
         panel.add(orderButton);
 
         orderButton.addActionListener(e -> {
-            String customerName = customerNameField.getText().trim();
-            String productName = productNameField.getText().trim();
-            int quantity;
+            if(Application.getLoginPage().getLoginType().equals("Customer")) {
+                String customerName = LoginPage.getCustomer().getCustomerName();
+                String productName = productNameField.getText().trim();
+                int quantity;
 
-            try {
-                quantity = Integer.parseInt(productNumberField.getText().trim());
-            } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(frame, "Lütfen geçerli bir miktar girin!", "Hata", JOptionPane.ERROR_MESSAGE);
-                return;
+                try {
+                    quantity = Integer.parseInt(productNumberField.getText().trim());
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(frame, "Lütfen geçerli bir miktar girin!", "Hata", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                if (customerName.isEmpty() || productName.isEmpty()) {
+                    JOptionPane.showMessageDialog(frame, "Lütfen tüm alanları doldurun!", "Hata", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                if(quantity>5){
+                    JOptionPane.showMessageDialog(frame, "Bir üründen 5'ten fazla alamazsınız!", "Hata", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                OrderThread orderThread = new OrderThread(customerName, productName, quantity, connection);
+                orderThread.start();
             }
-
-            if (customerName.isEmpty() || productName.isEmpty()) {
-                JOptionPane.showMessageDialog(frame, "Lütfen tüm alanları doldurun!", "Hata", JOptionPane.ERROR_MESSAGE);
-                return;
+            else {
+                JOptionPane.showMessageDialog(frame, "Yalnızca müşteriler sipariş verebilir!", "Hata", JOptionPane.ERROR_MESSAGE);
             }
-
-            OrderThread orderThread = new OrderThread(customerName, productName, quantity, connection);
-            orderThread.start();
         });
 
         // Product Table Panel
@@ -243,10 +201,10 @@ public class MainPage {
         panel.add(productTablePanel);
 
         String[] productColumnNames = {"Ürün Adı", "Stok", "Fiyat"};
-        Object[][] productData = new Object[productList.size()][3];
+        Object[][] productData = new Object[Application.getProductList().size()][3];
 
-        for (int i = 0; i < productList.size(); i++) {
-            Product product = productList.get(i);
+        for (int i = 0; i < Application.getProductList().size(); i++) {
+            Product product = Application.getProductList().get(i);
             productData[i][0] = product.getProductName();
             productData[i][1] = product.getStock();
             productData[i][2] = product.getPrice();
@@ -284,15 +242,15 @@ public class MainPage {
         panel.add(orderQueuePanel);
 
         String[] orderColumnNames = {"Müşteri Türü", "Müşteri Adı", "Harcama"};
-        Object[][] orderData = new Object[orderList.size()][3];
+        Object[][] orderData = new Object[Application.getOrderList().size()][3];
 
-        for (int i = 0; i < orderList.size(); i++) {
-            Order order = orderList.get(i);
+        for (int i = 0; i < Application.getOrderList().size(); i++) {
+            Order order = Application.getOrderList().get(i);
             Customer customer = null;
 
-            for(int j = 0 ; j < customerList.size(); j++){
-                if(order.getCustomerID() == customerList.get(j).getCustomerID()){
-                    customer = customerList.get(j);
+            for(int j = 0 ; j < Application.getCustomerList().size(); j++){
+                if(order.getCustomerID() == Application.getCustomerList().get(j).getCustomerID()){
+                    customer = Application.getCustomerList().get(j);
                 }
             }
 
@@ -341,8 +299,13 @@ public class MainPage {
         adminIcon.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
             public void mouseClicked(java.awt.event.MouseEvent e) {
-                AdminPage adminPage = new AdminPage();
-                adminPage.createAndShowGUI();
+                if(Application.getLoginPage().getLoginType().equals("Admin")) {
+                    frame.dispose();
+                    Application.getAdminPage().getFrame().setVisible(true);
+                }
+                else {
+                    JOptionPane.showMessageDialog(frame, "Bu sayfaya erişiminiz yok!", "Hata", JOptionPane.ERROR_MESSAGE);
+                }
             }
         });
 
@@ -360,113 +323,27 @@ public class MainPage {
         logIcon.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
             public void mouseClicked(java.awt.event.MouseEvent e) {
-                LogPage logPage = new LogPage();
-                logPage.createAndShowGUI();
+                if(Application.getLoginPage().getLoginType().equals("Admin")) {
+                    frame.dispose();
+                    Application.getLogPage().getFrame().setVisible(true);
+                }
+                else {
+                    JOptionPane.showMessageDialog(frame, "Bu sayfaya erişiminiz yok!", "Hata", JOptionPane.ERROR_MESSAGE);
+                }
             }
         });
 
         // Frame properties
-        frame.setSize(1200, 840);
+        frame.setSize(1200, 600);
         frame.setVisible(true);
     }
 
-    public void selectAllCustomers() {
-        try {
-            String query = "SELECT * FROM customers";
-            PreparedStatement stmt = connection.prepareStatement(query);
-            ResultSet rs = stmt.executeQuery();
-
-            while (rs.next()) {
-                int customerID = rs.getInt("customerid");
-                String customerName = rs.getString("customername");
-                double budget = rs.getDouble("budget");
-                String customerType = rs.getString("customertype");
-                double totalSpent = rs.getDouble("totalspent");
-
-                Customer customer = new Customer(customerID,customerName,budget,customerType,totalSpent);
-                customerList.add(customer);
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void selectAllProducts() {
-        try {
-            String query = "SELECT * FROM products";
-            PreparedStatement stmt = connection.prepareStatement(query);
-            ResultSet rs = stmt.executeQuery();
-
-            while (rs.next()) {
-                int productID = rs.getInt("productid");
-                String productName = rs.getString("productname");
-                int stock = rs.getInt("stock");
-                double price = rs.getDouble("price");
-
-                Product product = new Product(productID,productName,stock,price);
-                productList.add(product);
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void selectAllLogs(){
-        try {
-            String query = "SELECT * FROM logs";
-            PreparedStatement stmt = connection.prepareStatement(query);
-            ResultSet rs = stmt.executeQuery();
-
-            while (rs.next()) {
-                int logID = rs.getInt("logid");
-                int customerID = rs.getInt("customerid");
-                int orderID = rs.getInt("orderid");
-                String logDate = rs.getString("logdate");
-                String logType = rs.getString("logtype");
-                String logDetails = rs.getString("logdetails");
-
-                Log log = new Log(logID,customerID,orderID,logDate,logType,logDetails);
-                logList.add(log);
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void selectOrders(){
-        try {
-            String query = "SELECT * FROM orders WHERE confirm = false";
-            PreparedStatement stmt = connection.prepareStatement(query);
-            ResultSet rs = stmt.executeQuery();
-
-            while (rs.next()) {
-                int orderID = rs.getInt("orderid");
-                int customerID = rs.getInt("customerid");
-                int productID = rs.getInt("productid");
-                int quantity = rs.getInt("quantity");
-                double totalPrice = rs.getDouble("totalprice");
-                String orderDate = rs.getString("orderdate");
-                String orderStatus = rs.getString("orderstatus");
-                boolean confirm = rs.getBoolean("confirm");
-
-                Order order = new Order(orderID,customerID, productID, quantity, totalPrice, orderDate, orderStatus, confirm);
-                orderList.add(order);
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public static void updateProductTable() {
+    public void updateProductTable() {
         String[] productColumnNames = {"Ürün Adı", "Stok", "Fiyat"};
-        Object[][] productData = new Object[productList.size()][3];
+        Object[][] productData = new Object[Application.getProductList().size()][3];
 
-        for (int i = 0; i < productList.size(); i++) {
-            Product product = productList.get(i);
+        for (int i = 0; i < Application.getProductList().size(); i++) {
+            Product product = Application.getProductList().get(i);
             productData[i][0] = product.getProductName();
             productData[i][1] = product.getStock();
             productData[i][2] = product.getPrice();
@@ -486,17 +363,17 @@ public class MainPage {
         productTable.repaint();  // Repaint to ensure UI refresh
     }
 
-    public static void updateOrdersTable() {
+    public void updateOrdersTable() {
         String[] orderColumnNames = {"Müşteri Türü", "Müşteri Adı", "Harcama"};
-        Object[][] orderData = new Object[orderList.size()][3];
+        Object[][] orderData = new Object[Application.getOrderList().size()][3];
 
-        for (int i = 0; i < orderList.size(); i++) {
-            Order order = orderList.get(i);
+        for (int i = 0; i < Application.getOrderList().size(); i++) {
+            Order order = Application.getOrderList().get(i);
             Customer customer = null;
 
-            for(int j = 0 ; j < customerList.size(); j++){
-                if(order.getCustomerID() == customerList.get(j).getCustomerID()){
-                    customer = customerList.get(j);
+            for(int j = 0 ; j < Application.getCustomerList().size(); j++){
+                if(order.getCustomerID() == Application.getCustomerList().get(j).getCustomerID()){
+                    customer = Application.getCustomerList().get(j);
                 }
             }
 
@@ -520,68 +397,11 @@ public class MainPage {
         orderTable.repaint();  // Repaint to ensure UI refresh
     }
 
-    public static void updateCustomersTable() {
-        // Customer List Table
-        String[] customerColumnNames = {"Adı", "Türü", "Bütçe", "Toplam Harcama"};
-        Object[][] customerData = new Object[customerList.size()][4];
-
-        // Fill the data array with customerList content
-        for (int i = 0; i < customerList.size(); i++) {
-            Customer customer = customerList.get(i);
-            customerData[i][0] = customer.getCustomerName();
-            customerData[i][1] = customer.getCustomerType();
-            customerData[i][2] = customer.getBudget();
-            customerData[i][3] = customer.getTotalSpent();
-        }
-
-        // Recreate the table model with updated data
-        DefaultTableModel customerTableModel = new DefaultTableModel(customerData, customerColumnNames) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false; // Disable editing for all cells
-            }
-        };
-
-        // Update the table with the new model
-        customerTable.setModel(customerTableModel);
-        customerTable.revalidate();  // Revalidate the table to reflect changes
-        customerTable.repaint();  // Repaint to ensure UI refresh
-    }
-
-    public static ArrayList<Product> getProductList() {
-        return productList;
-    }
-
-    public static ArrayList<Customer> getCustomerList() {
-        return customerList;
-    }
-
-    public static ArrayList<Order> getOrderList() {
-        return orderList;
-    }
-
-    public static void setProductList(ArrayList<Product> productList) {
-        MainPage.productList = productList;
-    }
-
-    public static void setCustomerList(ArrayList<Customer> customerList) {
-        MainPage.customerList = customerList;
-    }
-
-    public static void setOrderList(ArrayList<Order> orderList) {
-        MainPage.orderList = orderList;
-    }
-
-    public static ArrayList<Log> getLogList() {
-        return logList;
-    }
-
-    public static void setLogList(ArrayList<Log> logList) {
-        MainPage.logList = logList;
-    }
-
-    public static JButton getOrderButton() {
+    public JButton getOrderButton() {
         return orderButton;
     }
 
+    public static JFrame getFrame() {
+        return frame;
+    }
 }

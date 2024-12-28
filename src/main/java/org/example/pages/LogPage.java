@@ -1,5 +1,6 @@
 package org.example.pages;
 
+import org.example.Application;
 import org.example.classes.Log;
 import org.example.database.ConnectDB;
 
@@ -7,6 +8,8 @@ import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -19,7 +22,7 @@ public class LogPage {
     private Connection connection;
     private static ArrayList<Log> logList = new ArrayList<>();
 
-    private JFrame frame = new JFrame("Products Orders App");
+    private static JFrame frame = new JFrame("Products Orders App");
 
     private static JTable logTable;
 
@@ -36,7 +39,7 @@ public class LogPage {
 
         connection = ConnectDB.getConnection();
 
-        logList = MainPage.getLogList();
+        logList = Application.getLogList();
 
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLayout(null);
@@ -57,6 +60,22 @@ public class LogPage {
 
         panel.setLayout(null);
         frame.setContentPane(panel);
+
+        JButton returnButton = new JButton("Geri");
+        returnButton.setBounds(30, 30, 80, 40);
+        returnButton.setBackground(Color.decode("#D9D9D9"));
+        returnButton.setForeground(Color.BLACK);
+        returnButton.setFont(new Font("Inter", Font.PLAIN, 20));
+        panel.add(returnButton);
+
+        returnButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                frame.dispose();
+                Application.getMainPage().getFrame().setVisible(true);
+
+            }
+        });
 
         // LOG KAYITLARI başlığı
         JLabel logTitle = new JLabel("LOG KAYITLARI", SwingConstants.CENTER);
@@ -144,11 +163,10 @@ public class LogPage {
 
         logTable.setModel(logTableModel);
 
-        // Sütun genişliklerini yeniden ayarla
         setTableColumnWidths();
 
-        logTable.revalidate();  // Revalidate the table to reflect changes
-        logTable.repaint();  // Repaint to ensure UI refresh
+        logTable.revalidate();
+        logTable.repaint();
     }
 
     // Tablo sütun genişliklerini ayarlamak için yardımcı fonksiyon
@@ -163,6 +181,10 @@ public class LogPage {
 
     public static JTable getLogTable() {
         return logTable;
+    }
+
+    public static JFrame getFrame() {
+        return frame;
     }
 
 }

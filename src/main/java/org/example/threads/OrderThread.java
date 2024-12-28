@@ -1,12 +1,10 @@
 package org.example.threads;
 
+import org.example.Application;
 import org.example.classes.Customer;
 import org.example.classes.Log;
 import org.example.classes.Order;
 import org.example.classes.Product;
-import org.example.pages.AdminPage;
-import org.example.pages.LogPage;
-import org.example.pages.MainPage;
 
 import javax.swing.*;
 import java.sql.Connection;
@@ -14,6 +12,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 public class OrderThread extends Thread {
     private String customerName;
@@ -47,10 +48,14 @@ public class OrderThread extends Thread {
                     return; // Thread'i durdurur
                 }
 
-                productList = MainPage.getProductList();
-                customerList = MainPage.getCustomerList();
-                logList = MainPage.getLogList();
-                orderList = MainPage.getOrderList();
+                LocalDateTime now = LocalDateTime.now();
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                String formattedDate = now.format(formatter);
+
+                productList = Application.getProductList();
+                customerList = Application.getCustomerList();
+                logList = Application.getLogList();
+                orderList = Application.getOrderList();
 
                 // Müşteri bilgilerini kontrol et
                 String customerQuery = "SELECT * FROM customers WHERE customername = ?";
@@ -82,14 +87,15 @@ public class OrderThread extends Thread {
 
                 int orderID;
                 // Siparişi orders tablosuna ekle
-                String orderQuery = "INSERT INTO orders (customerid, productid, quantity, totalprice, orderdate, orderstatus, confirm) VALUES (?, ?, ?, ?,CURRENT_TIMESTAMP, ?, ?) RETURNING orderid";
+                String orderQuery = "INSERT INTO orders (customerid, productid, quantity, totalprice, orderdate, orderstatus, confirm) VALUES (?, ?, ?, ?,?, ?, ?) RETURNING orderid";
                 PreparedStatement orderStmt = connection.prepareStatement(orderQuery);
                 orderStmt.setInt(1, customerID);
                 orderStmt.setInt(2, productID);
                 orderStmt.setInt(3, quantity);
                 orderStmt.setDouble(4, totalCost);
-                orderStmt.setString(5, "Waiting");
-                orderStmt.setBoolean(6, false);
+                orderStmt.setString(5,formattedDate);
+                orderStmt.setString(6, "Bekliyor");
+                orderStmt.setBoolean(7, false);
                 ResultSet orderRs = orderStmt.executeQuery();
 
                 if (orderRs.next()) {
@@ -99,7 +105,7 @@ public class OrderThread extends Thread {
                     return;
                 }
 
-                Order order = new Order(orderID, customerID, productID, quantity, totalCost, null, "Waiting", false);
+                Order order = new Order(orderID, customerID, productID, quantity, totalCost, formattedDate, "Bekliyor.", false);
                 orderList.add(order);
 
                 for (Order order1 : orderList) {
@@ -122,18 +128,19 @@ public class OrderThread extends Thread {
                 preCustomers.clear();
                 staCustomers.clear();
 
-                MainPage.setOrderList(orderList);
-                MainPage.updateOrdersTable();
-                if(AdminPage.getOrderTable() != null) {
-                    AdminPage.updateOrdersTable();
+                Application.setOrderList(orderList);
+                Application.getMainPage().updateOrdersTable();
+                if(Application.getAdminPage().getOrderTable() != null) {
+                    Application.getAdminPage().updateOrdersTable();
                 }
 
                 // Log kaydı ekle
-                String logQuery = "INSERT INTO logs (customerid, orderid, logdate, logtype, logdetails) VALUES (?, ?, CURRENT_TIMESTAMP, 'Sipariş', ?)";
+                String logQuery = "INSERT INTO logs (customerid, orderid, logdate, logtype, logdetails) VALUES (?, ?, ?, 'Sipariş', ?)";
                 PreparedStatement logStmt = connection.prepareStatement(logQuery);
                 logStmt.setInt(1, customerID);
-                logStmt.setInt(2, productID);
-                logStmt.setString(3, customerName + ", " + productName + "'den " + quantity + " adet sipariş verdi.");
+                logStmt.setInt(2, orderID);
+                logStmt.setString(3,formattedDate);
+                logStmt.setString(4, customerName + ", " + productName + "'den " + quantity + " adet sipariş verdi.");
 
                 logStmt.executeUpdate();
 
@@ -160,9 +167,9 @@ public class OrderThread extends Thread {
                     e.printStackTrace();
                 }
 
-                MainPage.setLogList(logList);
-                if(LogPage.getLogTable() != null) {
-                    LogPage.updateLogsTable();
+                Application.setLogList(logList);
+                if(Application.getLogPage().getLogTable() != null) {
+                    Application.getLogPage().updateLogsTable();
                 }
 
                 System.out.println();

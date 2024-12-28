@@ -8,11 +8,14 @@ public class Customer {
     private String customerType;
     private Double totalSpent;
 
+    private String customerPassword;
+
     public Customer(){}
 
-    public Customer(int customerID, String customerName, Double budget, String customerType, Double totalSpent){
+    public Customer(int customerID, String customerName, String customerPassword,Double budget, String customerType, Double totalSpent){
         this.customerID = customerID;
         this.customerName = customerName;
+        this.customerPassword = customerPassword;
         this.budget = budget;
         this.customerType = customerType;
         this.totalSpent = totalSpent;
@@ -38,6 +41,10 @@ public class Customer {
         return totalSpent;
     }
 
+    public String getCustomerPassword() {
+        return customerPassword;
+    }
+
     public void setCustomerID(int customerID) {
         this.customerID = customerID;
     }
@@ -56,6 +63,10 @@ public class Customer {
 
     public void setTotalSpent(Double totalSpent) {
         this.totalSpent = totalSpent;
+    }
+
+    public void setCustomerPassword(String customerPassword) {
+        this.customerPassword = customerPassword;
     }
 
 }

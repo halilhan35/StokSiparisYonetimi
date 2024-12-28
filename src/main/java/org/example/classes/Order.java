@@ -10,6 +10,7 @@ public class Order {
     private String orderDate;
     private String orderStatus;
     private boolean confirm;
+    private double priority;
 
     public Order(){}
 
@@ -56,6 +57,10 @@ public class Order {
         return confirm;
     }
 
+    public double getPriority() {
+        return priority;
+    }
+
     public void setOrderID(int orderID) {
         this.orderID = orderID;
     }
@@ -86,6 +91,10 @@ public class Order {
 
     public void setConfirm(boolean confirm) {
         this.confirm = confirm;
+    }
+
+    public void setPriority(double priority) {
+        this.priority = priority;
     }
 
 }

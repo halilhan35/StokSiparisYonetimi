@@ -1,8 +1,10 @@
 package org.example.pages;
+import org.example.Application;
 import org.example.classes.Customer;
 import org.example.classes.Order;
 import org.example.classes.Product;
 import org.example.database.ConnectDB;
+import org.example.threads.ControllerThread;
 import org.example.threads.OrderThread;
 
 import javax.imageio.ImageIO;
@@ -15,7 +17,11 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.sql.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 
 public class AdminPage {
 
@@ -25,7 +31,7 @@ public class AdminPage {
     private static ArrayList<Order> orderList = new ArrayList<Order>();
     private static ArrayList<Customer> customerList = new ArrayList<Customer>();
 
-    private JFrame frame = new JFrame("Products Orders App");
+    private static JFrame frame = new JFrame("Products Orders App");
 
     private JTextField productNameField = new JTextField();
     private JTextField productStockField = new JTextField();
@@ -37,7 +43,6 @@ public class AdminPage {
     private JTextField updateStockField = new JTextField();
 
     private static JTable orderTable;
-
 
     public void createAndShowGUI() {
 
@@ -51,9 +56,9 @@ public class AdminPage {
 
         connection = ConnectDB.getConnection();
 
-        productList = MainPage.getProductList();
-        orderList = MainPage.getOrderList();
-        customerList = MainPage.getCustomerList();
+        productList = Application.getProductList();
+        orderList = Application.getOrderList();
+        customerList = Application.getCustomerList();
 
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLayout(null);
@@ -77,51 +82,67 @@ public class AdminPage {
         panel.setBackground(Color.decode("#1E1E1E"));
         frame.setContentPane(panel);
 
+        JButton returnButton = new JButton("Geri");
+        returnButton.setBounds(30, 10, 80, 40);
+        returnButton.setBackground(Color.decode("#D9D9D9"));
+        returnButton.setForeground(Color.BLACK);
+        returnButton.setFont(new Font("Inter", Font.PLAIN, 20));
+        panel.add(returnButton);
+
+        returnButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                frame.dispose();
+                Application.getMainPage().getFrame().setVisible(true);
+
+            }
+        });
+
         // Product addition panel
         JPanel productAdditionPanel = new JPanel(null);
-        productAdditionPanel.setBounds(20, 39, 320, 520);
+        productAdditionPanel.setBounds(30, 59, 320, 520);
         productAdditionPanel.setBackground(Color.decode("#767676"));
         panel.add(productAdditionPanel);
 
         JLabel productAdditionLabel = new JLabel("Ürün Ekleme");
-        productAdditionLabel.setBounds(65, 50, 250, 46);
+        productAdditionLabel.setBounds(65, 55, 250, 46);
         productAdditionLabel.setFont(new Font("Inter", Font.PLAIN, 32));
         productAdditionLabel.setForeground(Color.WHITE);
         productAdditionPanel.add(productAdditionLabel);
 
         JLabel productNameLabel = new JLabel("Ürün Adı :");
-        productNameLabel.setBounds(20, 124, 125, 30);
+        productNameLabel.setBounds(20, 129, 125, 30);
         productNameLabel.setFont(new Font("Inter", Font.PLAIN, 24));
         productNameLabel.setForeground(Color.WHITE);
         productAdditionPanel.add(productNameLabel);
 
-        productNameField.setBounds(20, 172, 270, 40);
+        productNameField.setBounds(20, 177, 270, 40);
         productNameField.setBackground(Color.decode("#D9D9D9"));
         productAdditionPanel.add(productNameField);
 
         JLabel productStockLabel = new JLabel("Ürün Stoğu :");
-        productStockLabel.setBounds(20, 231, 150, 30);
+        productStockLabel.setBounds(20, 236, 150, 30);
         productStockLabel.setFont(new Font("Inter", Font.PLAIN, 24));
         productStockLabel.setForeground(Color.WHITE);
         productAdditionPanel.add(productStockLabel);
 
-        productStockField.setBounds(20, 280, 270, 40);
+        productStockField.setBounds(20, 285, 270, 40);
         productStockField.setBackground(Color.decode("#D9D9D9"));
         productAdditionPanel.add(productStockField);
 
         JLabel productPriceLabel = new JLabel("Ürün Fiyatı :");
-        productPriceLabel.setBounds(20, 339, 150, 30);
+        productPriceLabel.setBounds(20, 344, 150, 30);
         productPriceLabel.setFont(new Font("Inter", Font.PLAIN, 24));
         productPriceLabel.setForeground(Color.WHITE);
         productAdditionPanel.add(productPriceLabel);
 
-        productPriceField.setBounds(20, 388, 270, 40);
+        productPriceField.setBounds(20, 393, 270, 40);
         productPriceField.setBackground(Color.decode("#D9D9D9"));
         productAdditionPanel.add(productPriceField);
 
         JButton addProductButton = new JButton("Ürünü Ekle");
         addProductButton.setEnabled(false);
-        addProductButton.setBounds(50, 458, 200, 40);
+        addProductButton.setBounds(50, 463, 200, 40);
         addProductButton.setBackground(Color.decode("#D9D9D9"));
         addProductButton.setForeground(Color.BLACK);
         addProductButton.setFont(new Font("Inter", Font.PLAIN, 24));
@@ -307,7 +328,7 @@ public class AdminPage {
                 // Eğer butonun rengi yeşilse
                 if (holdSystemButton.getBackground() == Color.GREEN) {
                     // Beklemeye al işlemi
-                    MainPage.getOrderButton().setEnabled(false);
+                    Application.getMainPage().getOrderButton().setEnabled(false);
                     OrderThread.stopThread();
                     addProductButton.setEnabled(true);
                     deleteProductButton.setEnabled(true);
@@ -316,7 +337,7 @@ public class AdminPage {
                     holdSystemButton.setText("Sistemi Devam Ettir");
                 }
                 else if (holdSystemButton.getBackground() == Color.RED) {
-                    MainPage.getOrderButton().setEnabled(true);
+                    Application.getMainPage().getOrderButton().setEnabled(true);
                     OrderThread.resetStopFlag();
                     addProductButton.setEnabled(false);
                     deleteProductButton.setEnabled(false);
@@ -389,6 +410,87 @@ public class AdminPage {
         approveButton.setBorder(BorderFactory.createLineBorder(Color.BLACK, 1));
         panel.add(approveButton);
 
+        approveButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+
+                LocalDateTime now = LocalDateTime.now();
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                String formattedDate = now.format(formatter);
+
+                for (Order order : orderList) {
+                    double priority = 0.0;
+                    Customer customer = null;
+
+                    // Müşteriyi bul
+                    for (Customer customer1 : customerList) {
+                        if (order.getCustomerID() == customer1.getCustomerID()) {
+                            customer = customer1;
+                        }
+                    }
+
+                    if (customer != null) {
+                        // Müşteri türüne göre öncelik artırımı
+                        if (customer.getCustomerType().equals("Premium")) {
+                            priority += 15;
+                        } else {
+                            priority += 10;
+                        }
+
+                        // OrderDate'i dönüştür ve saniye farkını hesapla
+                        String orderDate = order.getOrderDate();
+                        try {
+                            LocalDateTime orderDateTime = LocalDateTime.parse(orderDate, formatter);
+                            LocalDateTime currentDateTime = LocalDateTime.parse(formattedDate, formatter);
+
+                            long secondsDifference = java.time.Duration.between(orderDateTime, currentDateTime).getSeconds();
+                            priority += secondsDifference * 0.5;
+
+                            order.setPriority(priority);
+
+                        } catch (Exception ex) {
+                            ex.printStackTrace();
+                        }
+                    }
+                }
+
+                // Onceligi en yuksek olana gore sıralama
+
+                Collections.sort(orderList, new Comparator<Order>() {
+                    @Override
+                    public int compare(Order o1, Order o2) {
+                        // Azalan sırayla sıralamak için tersini alıyoruz
+                        return Double.compare(o2.getPriority(), o1.getPriority());
+                    }
+                });
+
+                for (Order order1 : orderList) {
+                    System.out.println("Order ID: " + order1.getOrderID() + ", Priority: " + order1.getPriority());
+                }
+
+                // Burada her sipariş için thread olmalı.
+                ControllerThread controllerThread = new ControllerThread(orderList, connection);
+                controllerThread.start();
+
+                try {
+                    controllerThread.join();
+                } catch (InterruptedException m) {
+                    m.printStackTrace();
+                }
+
+                orderList.clear();
+                Application.setOrderList(orderList);
+                Application.getMainPage().updateOrdersTable();
+                Application.getAdminPage().setOrderList(orderList);
+                Application.getAdminPage().updateOrdersTable();
+                Application.getProductList().clear();
+                Application.selectAllProducts();
+                Application.getMainPage().updateProductTable();
+                Application.getAdminPage().updateProductTable();
+
+            }
+        });
+
         frame.setSize(1200, 840);
         frame.setVisible(true);
     }
@@ -447,10 +549,10 @@ public class AdminPage {
                     Product newProduct = new Product(generatedId, productName, stock, price);
                     productList.add(newProduct);
 
-                    MainPage.setProductList(productList);
+                    Application.setProductList(productList);
 
                     updateProductTable();
-                    MainPage.updateProductTable();
+                    Application.getMainPage().updateProductTable();
 
                     JOptionPane.showMessageDialog(null, "Ürün başarıyla eklendi!", "Başarılı", JOptionPane.INFORMATION_MESSAGE);
                 }
@@ -491,11 +593,11 @@ public class AdminPage {
             if (rowsAffected > 0) {
                 // Remove the product from the list
                 productList.removeIf(product -> product.getProductName().equals(productName));
-                MainPage.setProductList(productList);
+                Application.setProductList(productList);
 
                 // Update the table
                 updateProductTable();
-                MainPage.updateProductTable();
+                Application.getMainPage().updateProductTable();
 
                 JOptionPane.showMessageDialog(null, "Ürün başarıyla silindi!", "Başarılı", JOptionPane.INFORMATION_MESSAGE);
             } else {
@@ -557,8 +659,8 @@ public class AdminPage {
                     }
                 }
 
-                MainPage.setProductList(productList);
-                MainPage.updateProductTable();
+                Application.setProductList(productList);
+                Application.getMainPage().updateProductTable();
                 updateProductTable();
 
             } else {
@@ -640,8 +742,15 @@ public class AdminPage {
         AdminPage.productList = productList;
     }
 
+    public static void setOrderList(ArrayList<Order> orderList) {
+        AdminPage.orderList = orderList;
+    }
+
     public static JTable getOrderTable() {
         return orderTable;
     }
 
+    public static JFrame getFrame() {
+        return frame;
+    }
 }
